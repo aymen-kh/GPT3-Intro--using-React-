@@ -1,31 +1,46 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Node.js CI
+name: React CI/CD
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]  # Changed from master to main (common default now)
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [18.x, 20.x]  # React works well with these LTS versions
+        # Removed 22.x as some React dependencies might not support it yet
 
     steps:
     - uses: actions/checkout@v4
+    
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+    
+    - name: Install dependencies
+      run: npm ci  # Clean install for CI environments
+      
+    - name: Run linting
+      run: npm run lint  # Add if you have ESLint setup
+      
+    - name: Run tests
+      run: npm test
+      env:
+        CI: true  # Important for React testing in CI environment
+        
+    - name: Build project
+      run: npm run build
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      if: ${{ github.ref == 'refs/heads/main' }}
+      with:
+        name: production-build
+        path: build/
